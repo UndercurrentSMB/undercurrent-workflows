@@ -51,6 +51,7 @@ jobs:
     with:
       language: go
       go_version: ${{ inputs.go_version }}
+      has_auth_dep: ${{ inputs.has_auth_dep }}
     secrets: inherit
 
   test:

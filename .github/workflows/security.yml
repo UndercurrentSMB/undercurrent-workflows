@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: "1.25"
+      has_auth_dep:
+        description: "Clone undercurrent-auth-go for replace directive"
+        required: false
+        type: boolean
+        default: false
       node_version:
         description: "Node version (for npm audit)"
         required: false
@@ -58,6 +63,13 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
+
+      - name: Clone auth-go for replace directive
+        if: inputs.language == 'go' && inputs.has_auth_dep
+        run: |
+          git clone --depth 1 \
+            https://github.com/Travbz/undercurrent-auth-go.git \
+            ${{ github.workspace }}/../undercurrent-auth-go
 
       - name: Run govulncheck
         if: inputs.language == 'go'
