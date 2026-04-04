@@ -135,5 +135,6 @@ jobs:
     uses: Travbz/undercurrent-workflows/.github/workflows/security.yml@v0
     with:
       language: go
+      has_auth_dep: ${{ inputs.has_auth_dep }}
       image_ref: ${{ needs.docker.outputs.image_ref }}
     secrets: inherit
