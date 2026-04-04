@@ -132,9 +132,29 @@ jobs:
     name: Image Security Scan
     if: inputs.has_docker && github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: docker
-    uses: Travbz/undercurrent-workflows/.github/workflows/security.yml@v0
-    with:
-      language: go
-      has_auth_dep: ${{ inputs.has_auth_dep }}
-      image_ref: ${{ needs.docker.outputs.image_ref }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.docker.outputs.image_ref }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
