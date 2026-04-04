@@ -101,6 +101,11 @@ jobs:
           mkdir -p .deps
           cp -r /tmp/undercurrent-auth-go .deps/undercurrent-auth-go
 
+      - name: Compute image metadata
+        id: meta
+        run: |
+          echo "image_ref=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION || 'us-east-2' }}.amazonaws.com/${{ inputs.service_name }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -111,12 +116,6 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Compute image metadata
-        id: meta
-        run: |
-          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
-          echo "image_ref=${REGISTRY}/${{ inputs.service_name }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push
@@ -125,7 +124,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service_name }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image_ref }}
             ${{ steps.ecr-login.outputs.registry }}/${{ inputs.service_name }}:latest
 
   image-scan:
