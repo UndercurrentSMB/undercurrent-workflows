@@ -64,11 +64,21 @@ jobs:
         with:
           go-version: ${{ inputs.go_version }}
 
+      - name: Generate GitHub App token
+        if: inputs.language == 'go' && inputs.has_auth_dep
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: Travbz
+          repositories: undercurrent-auth-go
+
       - name: Clone auth-go for replace directive
         if: inputs.language == 'go' && inputs.has_auth_dep
         run: |
           git clone --depth 1 \
-            https://github.com/Travbz/undercurrent-auth-go.git \
+            https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/Travbz/undercurrent-auth-go.git \
             ${{ github.workspace }}/../undercurrent-auth-go
 
       - name: Run govulncheck
