@@ -128,7 +128,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ inputs.dev_mode && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          platforms: ${{ inputs.dev_mode && 'linux/arm64' || 'linux/amd64,linux/arm64' }}
           push: true
           tags: |
             ${{ steps.meta.outputs.image_ref }}
