@@ -100,7 +100,7 @@ jobs:
 
   docker:
     name: Docker Build & Push
-    if: ${{ inputs.has_docker && !(inputs.dev_mode && github.event_name == 'pull_request') }}
+    if: ${{ always() && !failure() && !cancelled() && inputs.has_docker && !(inputs.dev_mode && github.event_name == 'pull_request') }}
     needs: [test, security]
     runs-on: ubuntu-latest
     outputs:
