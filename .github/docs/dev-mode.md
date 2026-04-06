@@ -27,7 +27,7 @@ In your repo's `.github/workflows/ci.yml`, pass `dev_mode: true`:
 ```yaml
 jobs:
   ci:
-    uses: Travbz/undercurrent-workflows/.github/workflows/go-service.yml@v0
+    uses: UndercurrentSMB/undercurrent-workflows/.github/workflows/go-service.yml@v0
     with:
       dev_mode: true          # <-- add this line
       service_name: my-service

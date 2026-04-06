@@ -32,7 +32,7 @@ permissions:
 jobs:
   security:
     if: ${{ !inputs.dev_mode }}
-    uses: Travbz/undercurrent-workflows/.github/workflows/security.yml@v0
+    uses: UndercurrentSMB/undercurrent-workflows/.github/workflows/security.yml@v0
     with:
       language: node
       node_version: ${{ inputs.node_version }}

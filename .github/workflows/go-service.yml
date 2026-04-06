@@ -54,7 +54,7 @@ permissions:
 jobs:
   security:
     if: ${{ !inputs.dev_mode }}
-    uses: Travbz/undercurrent-workflows/.github/workflows/security.yml@v0
+    uses: UndercurrentSMB/undercurrent-workflows/.github/workflows/security.yml@v0
     with:
       language: go
       go_version: ${{ inputs.go_version }}
@@ -74,14 +74,14 @@ jobs:
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          owner: Travbz
+          owner: UndercurrentSMB
           repositories: undercurrent-auth-go
 
       - name: Clone auth-go for replace directive
         if: inputs.has_auth_dep
         run: |
           git clone --depth 1 \
-            https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/Travbz/undercurrent-auth-go.git \
+            https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/UndercurrentSMB/undercurrent-auth-go.git \
             ${{ github.workspace }}/../undercurrent-auth-go
 
       - name: Set up Go
@@ -116,14 +116,14 @@ jobs:
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          owner: Travbz
+          owner: UndercurrentSMB
           repositories: undercurrent-auth-go
 
       - name: Clone and stage auth-go for Docker build
         if: inputs.has_auth_dep
         run: |
           git clone --depth 1 \
-            https://x-access-token:${{ steps.app-token-docker.outputs.token }}@github.com/Travbz/undercurrent-auth-go.git \
+            https://x-access-token:${{ steps.app-token-docker.outputs.token }}@github.com/UndercurrentSMB/undercurrent-auth-go.git \
             /tmp/undercurrent-auth-go
           mkdir -p .deps
           cp -r /tmp/undercurrent-auth-go .deps/undercurrent-auth-go

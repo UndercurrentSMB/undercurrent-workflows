@@ -54,7 +54,7 @@ permissions:
 jobs:
   security:
     if: ${{ !inputs.dev_mode }}
-    uses: Travbz/undercurrent-workflows/.github/workflows/security.yml@v0
+    uses: UndercurrentSMB/undercurrent-workflows/.github/workflows/security.yml@v0
     with:
       language: python
       python_version: ${{ inputs.python_version }}

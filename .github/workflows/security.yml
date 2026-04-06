@@ -79,14 +79,14 @@ jobs:
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          owner: Travbz
+          owner: UndercurrentSMB
           repositories: undercurrent-auth-go
 
       - name: Clone auth-go for replace directive
         if: inputs.language == 'go' && inputs.has_auth_dep
         run: |
           git clone --depth 1 \
-            https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/Travbz/undercurrent-auth-go.git \
+            https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/UndercurrentSMB/undercurrent-auth-go.git \
             ${{ github.workspace }}/../undercurrent-auth-go
 
       - name: Run govulncheck
