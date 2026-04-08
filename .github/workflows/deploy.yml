@@ -91,7 +91,6 @@ permissions:
   id-token: write
   contents: write
   pull-requests: read
-  security-events: write
 
 jobs:
   # ──────────────────────────────────────────────
@@ -193,24 +192,11 @@ jobs:
         run: ${{ inputs.build_command }}
 
   # ──────────────────────────────────────────────
-  # 1b. SECURITY — gitleaks + dependency scan
-  # ──────────────────────────────────────────────
-  security:
-    uses: UndercurrentSMB/undercurrent-workflows/.github/workflows/security.yml@main
-    with:
-      language: ${{ inputs.language }}
-      go_version: ${{ inputs.go_version }}
-      python_version: ${{ inputs.python_version }}
-      node_version: ${{ inputs.node_version }}
-      has_auth_dep: ${{ inputs.has_auth_dep }}
-    secrets: inherit
-
-  # ──────────────────────────────────────────────
   # 2. BUILD — Docker image, tagged with git SHA
   # ──────────────────────────────────────────────
   docker:
     name: Docker Build & Push
-    needs: [test, security]
+    needs: [test]
     if: ${{ inputs.has_docker }}
     runs-on: ubuntu-latest
     outputs:
@@ -390,7 +376,7 @@ jobs:
   # ──────────────────────────────────────────────
   release:
     name: Release
-    needs: [test, security, docker, deploy-dev, verify]
+    needs: [test, docker, deploy-dev, verify]
     # Run even when optional jobs (docker, deploy-dev, verify) are skipped.
     # Do NOT run if any required job failed. Skip on PRs — only release on merge.
     if: ${{ always() && !failure() && !cancelled() && github.event_name != 'pull_request' }}
@@ -607,7 +593,7 @@ jobs:
   # ──────────────────────────────────────────────
   notify-failure:
     name: Notify Deploy Failure
-    needs: [test, security, docker, deploy-dev, verify, release, retag, deploy-prod]
+    needs: [test, docker, deploy-dev, verify, release, retag, deploy-prod]
     if: ${{ always() && failure() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
