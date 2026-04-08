@@ -38,6 +38,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_tests:
+        description: "Skip test job (PR CI already validates before merge)"
+        required: false
+        type: boolean
+        default: false
       # Go-specific
       go_version:
         description: "Go version"
@@ -98,6 +103,7 @@ jobs:
   # ──────────────────────────────────────────────
   test:
     name: Test
+    if: ${{ !inputs.skip_tests }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -198,7 +204,7 @@ jobs:
   docker:
     name: Docker Build & Push
     needs: [test]
-    if: ${{ inputs.has_docker }}
+    if: ${{ always() && !failure() && !cancelled() && inputs.has_docker }}
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ github.sha }}
