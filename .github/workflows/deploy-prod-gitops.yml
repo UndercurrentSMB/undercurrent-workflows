@@ -1,0 +1,98 @@
+# deploy-prod-gitops.yml — Reusable GitOps Deploy to Prod
+#
+# Updates the prod Helm values file with the target semver tag,
+# commits directly to main using a GitHub App token (bypasses
+# branch protection), and notifies Discord on success or failure.
+# New workflow for Phase 1 CI/CD restructure — no ArgoCD API calls,
+# ArgoCD picks up the change via GitOps polling/webhook.
+
+name: Deploy to Prod (GitOps)
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Semver tag to deploy (e.g., v0.17.0)"
+        required: true
+        type: string
+      service_name:
+        description: "Service name for notifications"
+        required: true
+        type: string
+      values_file:
+        description: "Path to prod values file"
+        required: false
+        type: string
+        default: "helm/values-prod.yaml"
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Deploy to Prod (GitOps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: UndercurrentSMB
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/local/bin/yq
+
+      - name: Read current tag
+        id: current
+        run: |
+          CURRENT_TAG=$(yq '.base-service.deployment.image.tag' "${{ inputs.values_file }}")
+          echo "tag=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
+          echo "Current tag: $CURRENT_TAG"
+
+      - name: Skip if already at requested version
+        if: steps.current.outputs.tag == inputs.version
+        run: |
+          echo "::notice::Prod already at ${{ inputs.version }} — skipping deploy"
+          exit 0
+
+      - name: Update image tag
+        if: steps.current.outputs.tag != inputs.version
+        run: |
+          export VERSION="${{ inputs.version }}"
+          yq -i '.base-service.deployment.image.tag = strenv(VERSION)' "${{ inputs.values_file }}"
+          echo "Updated tag to $VERSION"
+          cat "${{ inputs.values_file }}"
+
+      - name: Commit and push
+        if: steps.current.outputs.tag != inputs.version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ inputs.values_file }}"
+          git commit -m "deploy: release ${{ inputs.service_name }} ${{ inputs.version }} to prod [skip ci]"
+          git push origin main
+
+      - name: Notify Discord — success
+        if: success() && steps.current.outputs.tag != inputs.version
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"embeds\":[{\"title\":\"Prod Deploy Succeeded\",\"description\":\"**Service:** ${{ inputs.service_name }}\n**Version:** ${{ inputs.version }}\n**Actor:** ${{ github.actor }}\n**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"color\":3066993}]}" \
+            "${{ secrets.DISCORD_DEPLOY_WEBHOOK }}"
+
+      - name: Notify Discord — failure
+        if: failure()
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"embeds\":[{\"title\":\"Prod Deploy Failed\",\"description\":\"**Service:** ${{ inputs.service_name }}\n**Version:** ${{ inputs.version }}\n**Actor:** ${{ github.actor }}\n**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"color\":16711680}]}" \
+            "${{ secrets.DISCORD_DEPLOY_WEBHOOK }}"
