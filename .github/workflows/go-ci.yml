@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: "./cmd/server"
+      lint_raw_amqp:
+        description: "Fail if Go files outside internal/rabbit/ call raw AMQP publish/consume (opt-in)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -65,3 +70,28 @@ jobs:
 
       - name: Build
         run: go build -o /dev/null ${{ inputs.build_target }}
+
+      - name: Lint raw AMQP calls
+        if: inputs.lint_raw_amqp
+        run: |
+          # Fail if any Go file outside internal/rabbit/ calls raw AMQP
+          # publish or consume methods directly. Services should use
+          # shared-go-rabbit's PublishJSON and HandleDelivery instead.
+          PUBLISH_HITS=$(grep -rn --include='*.go' '\.PublishWithContext(' . \
+            --exclude-dir=vendor --exclude-dir=.git \
+            | grep -v 'internal/rabbit/' \
+            || true)
+
+          CONSUME_HITS=$(grep -rn --include='*.go' 'ch\.Consume(' . \
+            --exclude-dir=vendor --exclude-dir=.git \
+            | grep -v 'internal/rabbit/' \
+            || true)
+
+          HITS="${PUBLISH_HITS}${CONSUME_HITS}"
+          if [ -n "$HITS" ]; then
+            echo "::error::Raw AMQP calls found — use shared-go-rabbit (PublishJSON / HandleDelivery) instead:"
+            echo "$PUBLISH_HITS"
+            echo "$CONSUME_HITS"
+            exit 1
+          fi
+          echo "No raw AMQP calls found outside internal/rabbit/"
