@@ -44,7 +44,11 @@ permissions:
 jobs:
   build:
     name: Docker Build & Push
-    runs-on: ubuntu-latest
+    # Native ARM64 runner — every production image is linux/arm64 (Apple
+    # Silicon dev cluster + Mac Mini prod). Building on amd64 via QEMU
+    # emulation was ~5-8× slower than native. No QEMU setup needed when
+    # the runner architecture matches the target platform.
+    runs-on: ubuntu-24.04-arm
     outputs:
       image_tag: ${{ github.sha }}
       image_ref: ${{ steps.meta.outputs.image_ref }}
@@ -94,7 +98,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - uses: docker/setup-qemu-action@v4
+      # No setup-qemu — runner is already arm64, target is linux/arm64.
       - uses: docker/setup-buildx-action@v4
 
       - name: Compute image tags
