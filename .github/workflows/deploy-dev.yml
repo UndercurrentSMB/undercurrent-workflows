@@ -54,9 +54,22 @@ jobs:
 
       - name: Set image tag and sync
         run: |
-          argocd app set "${{ inputs.service_name }}" \
-            -p "base-service.deployment.image.tag=${{ inputs.image_tag }}" \
-            --grpc-web --insecure
+          # Retry `app set` — Cloudflare tunnel EOFs on long-lived grpc-web streams.
+          for attempt in 1 2 3 4 5; do
+            if argocd app set "${{ inputs.service_name }}" \
+                 -p "base-service.deployment.image.tag=${{ inputs.image_tag }}" \
+                 --grpc-web --insecure 2>&1; then
+              echo "app set succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::app set failed after 5 attempts"
+              exit 1
+            fi
+            BACKOFF=$((attempt * 10))
+            echo "app set attempt $attempt failed (tunnel flake), retrying in ${BACKOFF}s..."
+            sleep "$BACKOFF"
+          done
 
           # Retry sync up to 5 times with backoff to handle "another operation in progress"
           for attempt in 1 2 3 4 5; do
